@@ -22,13 +22,30 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Discover .NET projects
+        id: discover
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if find . -maxdepth 3 -type f \( -name '*.sln' -o -name '*.csproj' \) | grep -q .; then
+            echo "has_dotnet_projects=true" >> "$GITHUB_OUTPUT"
+            echo "Detected at least one .sln or .csproj file."
+          else
+            echo "has_dotnet_projects=false" >> "$GITHUB_OUTPUT"
+            echo "No .sln or .csproj files found. Skipping .NET validation steps."
+          fi
+
       - name: Restore dependencies
+        if: steps.discover.outputs.has_dotnet_projects == 'true'
         run: dotnet restore
 
       - name: Build
+        if: steps.discover.outputs.has_dotnet_projects == 'true'
         run: dotnet build --configuration Release --no-restore
 
       - name: Run tests (if test projects exist)
+        if: steps.discover.outputs.has_dotnet_projects == 'true'
         shell: bash
         run: |
           set -euo pipefail
